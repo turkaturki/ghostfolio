@@ -13,6 +13,7 @@ import { IDataGatheringItem } from '@ghostfolio/api/services/interfaces/interfac
 import { PortfolioSnapshotService } from '@ghostfolio/api/services/queues/portfolio-snapshot/portfolio-snapshot.service';
 import { getIntervalFromDateRange } from '@ghostfolio/common/calculation-helper';
 import {
+  INVESTMENT_ACTIVITY_TYPES,
   PORTFOLIO_SNAPSHOT_PROCESS_JOB_NAME,
   PORTFOLIO_SNAPSHOT_PROCESS_JOB_OPTIONS,
   PORTFOLIO_SNAPSHOT_COMPUTATION_QUEUE_PRIORITY_HIGH,
@@ -187,8 +188,7 @@ export abstract class PortfolioCalculator {
         totalInterestWithCurrencyEffect: new Big(0),
         totalInvestment: new Big(0),
         totalInvestmentWithCurrencyEffect: new Big(0),
-        totalLiabilitiesWithCurrencyEffect: new Big(0),
-        totalValuablesWithCurrencyEffect: new Big(0)
+        totalLiabilitiesWithCurrencyEffect: new Big(0)
       };
     }
 
@@ -198,7 +198,6 @@ export abstract class PortfolioCalculator {
     let firstTransactionPoint: TransactionPoint = null;
     let totalInterestWithCurrencyEffect = new Big(0);
     let totalLiabilitiesWithCurrencyEffect = new Big(0);
-    let totalValuablesWithCurrencyEffect = new Big(0);
 
     for (const { currency, dataSource, symbol } of transactionPoints[
       firstIndex - 1
@@ -289,10 +288,12 @@ export abstract class PortfolioCalculator {
       firstIndex--;
     }
 
-    const positions: TimelinePosition[] = [];
+    const errors: ResponseError['errors'] = [];
     let hasAnySymbolMetricsErrors = false;
 
-    const errors: ResponseError['errors'] = [];
+    const positions: (TimelinePosition & {
+      includeInHoldings: boolean;
+    })[] = [];
 
     const accumulatedValuesByDate: {
       [date: string]: {
@@ -364,8 +365,7 @@ export abstract class PortfolioCalculator {
         totalInterestInBaseCurrency,
         totalInvestment,
         totalInvestmentWithCurrencyEffect,
-        totalLiabilitiesInBaseCurrency,
-        totalValuablesInBaseCurrency
+        totalLiabilitiesInBaseCurrency
       } = this.getSymbolMetrics({
         chartDateMap,
         marketSymbolMap,
@@ -412,6 +412,7 @@ export abstract class PortfolioCalculator {
         grossPerformanceWithCurrencyEffect: !hasErrors
           ? (grossPerformanceWithCurrencyEffect ?? null)
           : null,
+        includeInHoldings: item.includeInHoldings,
         investment: totalInvestment,
         investmentWithCurrencyEffect: totalInvestmentWithCurrencyEffect,
         marketPrice:
@@ -444,16 +445,13 @@ export abstract class PortfolioCalculator {
       totalLiabilitiesWithCurrencyEffect =
         totalLiabilitiesWithCurrencyEffect.plus(totalLiabilitiesInBaseCurrency);
 
-      totalValuablesWithCurrencyEffect = totalValuablesWithCurrencyEffect.plus(
-        totalValuablesInBaseCurrency
-      );
-
       if (
         (hasErrors ||
           currentRateErrors.find(({ dataSource, symbol }) => {
             return dataSource === item.dataSource && symbol === item.symbol;
           })) &&
-        item.investment.gt(0)
+        item.investment.gt(0) &&
+        item.skipErrors === false
       ) {
         errors.push({ dataSource: item.dataSource, symbol: item.symbol });
       }
@@ -597,7 +595,6 @@ export abstract class PortfolioCalculator {
         netPerformance: totalNetPerformanceValue.toNumber(),
         netPerformanceWithCurrencyEffect:
           totalNetPerformanceValueWithCurrencyEffect.toNumber(),
-        // TODO: Add valuables
         netWorth: totalCurrentValueWithCurrencyEffect
           .plus(totalAccountBalanceWithCurrencyEffect)
           .toNumber(),
@@ -612,15 +609,23 @@ export abstract class PortfolioCalculator {
 
     const overall = this.calculateOverallPerformance(positions);
 
+    const positionsIncludedInHoldings = positions
+      .filter(({ includeInHoldings }) => {
+        return includeInHoldings;
+      })
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      .map(({ includeInHoldings, ...rest }) => {
+        return rest;
+      });
+
     return {
       ...overall,
       errors,
       historicalData,
-      positions,
       totalInterestWithCurrencyEffect,
       totalLiabilitiesWithCurrencyEffect,
-      totalValuablesWithCurrencyEffect,
-      hasErrors: hasAnySymbolMetricsErrors || overall.hasErrors
+      hasErrors: hasAnySymbolMetricsErrors || overall.hasErrors,
+      positions: positionsIncludedInHoldings
     };
   }
 
@@ -754,7 +759,7 @@ export abstract class PortfolioCalculator {
               ? 0
               : netPerformanceWithCurrencyEffectSinceStartDate /
                 timeWeightedInvestmentValue
-          // TODO: Add net worth with valuables
+          // TODO: Add net worth
           // netWorth: totalCurrentValueWithCurrencyEffect
           //   .plus(totalAccountBalanceWithCurrencyEffect)
           //   .toNumber()
@@ -817,12 +822,6 @@ export abstract class PortfolioCalculator {
 
   public getTransactionPoints() {
     return this.transactionPoints;
-  }
-
-  public async getValuablesInBaseCurrency() {
-    await this.snapshotPromise;
-
-    return this.snapshot.totalValuablesWithCurrencyEffect;
   }
 
   private getChartDateMap({
@@ -911,9 +910,14 @@ export abstract class PortfolioCalculator {
       unitPrice
     } of this.activities) {
       let currentTransactionPointItem: TransactionPointSymbol;
-      const oldAccumulatedSymbol = symbols[SymbolProfile.symbol];
 
+      const currency = SymbolProfile.currency;
+      const dataSource = SymbolProfile.dataSource;
       const factor = getFactor(type);
+      const skipErrors = !!SymbolProfile.userId; // Skip errors for custom asset profiles
+      const symbol = SymbolProfile.symbol;
+
+      const oldAccumulatedSymbol = symbols[symbol];
 
       if (oldAccumulatedSymbol) {
         let investment = oldAccumulatedSymbol.investment;
@@ -933,32 +937,36 @@ export abstract class PortfolioCalculator {
         }
 
         currentTransactionPointItem = {
+          currency,
+          dataSource,
           investment,
+          skipErrors,
+          symbol,
           averagePrice: newQuantity.gt(0)
             ? investment.div(newQuantity)
             : new Big(0),
-          currency: SymbolProfile.currency,
-          dataSource: SymbolProfile.dataSource,
           dividend: new Big(0),
           fee: oldAccumulatedSymbol.fee.plus(fee),
           firstBuyDate: oldAccumulatedSymbol.firstBuyDate,
+          includeInHoldings: oldAccumulatedSymbol.includeInHoldings,
           quantity: newQuantity,
-          symbol: SymbolProfile.symbol,
           tags: oldAccumulatedSymbol.tags.concat(tags),
           transactionCount: oldAccumulatedSymbol.transactionCount + 1
         };
       } else {
         currentTransactionPointItem = {
+          currency,
+          dataSource,
           fee,
+          skipErrors,
+          symbol,
           tags,
           averagePrice: unitPrice,
-          currency: SymbolProfile.currency,
-          dataSource: SymbolProfile.dataSource,
           dividend: new Big(0),
           firstBuyDate: date,
+          includeInHoldings: INVESTMENT_ACTIVITY_TYPES.includes(type),
           investment: unitPrice.mul(quantity).mul(factor),
           quantity: quantity.mul(factor),
-          symbol: SymbolProfile.symbol,
           transactionCount: 1
         };
       }
@@ -1000,19 +1008,12 @@ export abstract class PortfolioCalculator {
         liabilities = quantity.mul(unitPrice);
       }
 
-      let valuables = new Big(0);
-
-      if (type === 'ITEM') {
-        valuables = quantity.mul(unitPrice);
-      }
-
       if (lastDate !== date || lastTransactionPoint === null) {
         lastTransactionPoint = {
           date,
           fees,
           interest,
           liabilities,
-          valuables,
           items: newItems
         };
 
@@ -1024,8 +1025,6 @@ export abstract class PortfolioCalculator {
         lastTransactionPoint.items = newItems;
         lastTransactionPoint.liabilities =
           lastTransactionPoint.liabilities.plus(liabilities);
-        lastTransactionPoint.valuables =
-          lastTransactionPoint.valuables.plus(valuables);
       }
 
       lastDate = date;

@@ -25,7 +25,7 @@
 
 ## Ghostfolio Premium
 
-Our official **[Ghostfolio Premium](https://ghostfol.io/en/pricing)** cloud offering is the easiest way to get started. Due to the time it saves, this will be the best option for most people. Revenue is used to cover the costs of the hosting infrastructure and to fund ongoing development.
+Our official **[Ghostfolio Premium](https://ghostfol.io/en/pricing)** cloud offering is the easiest way to get started. Due to the time it saves, this will be the best option for most people. Revenue is used to cover operational costs for the hosting infrastructure and professional data providers, and to fund ongoing development.
 
 If you prefer to run Ghostfolio on your own infrastructure, please find further instructions in the [Self-hosting](#self-hosting) section.
 
@@ -138,7 +138,6 @@ docker compose -f docker/docker-compose.build.yml up -d
 #### Upgrade Version
 
 1. Update the _Ghostfolio_ Docker image
-
    - Increase the version of the `ghostfolio/ghostfolio` Docker image in `docker/docker-compose.yml`
    - Run the following command if `ghostfolio:latest` is set:
      ```bash
@@ -222,18 +221,18 @@ Deprecated: `GET http://localhost:3333/api/v1/auth/anonymous/<INSERT_SECURITY_TO
 }
 ```
 
-| Field        | Type                | Description                                                                   |
-| ------------ | ------------------- | ----------------------------------------------------------------------------- |
-| `accountId`  | `string` (optional) | Id of the account                                                             |
-| `comment`    | `string` (optional) | Comment of the activity                                                       |
-| `currency`   | `string`            | `CHF` \| `EUR` \| `USD` etc.                                                  |
-| `dataSource` | `string`            | `COINGECKO` \| `MANUAL` (for type `ITEM`) \| `YAHOO`                          |
-| `date`       | `string`            | Date in the format `ISO-8601`                                                 |
-| `fee`        | `number`            | Fee of the activity                                                           |
-| `quantity`   | `number`            | Quantity of the activity                                                      |
-| `symbol`     | `string`            | Symbol of the activity (suitable for `dataSource`)                            |
-| `type`       | `string`            | `BUY` \| `DIVIDEND` \| `FEE` \| `INTEREST` \| `ITEM` \| `LIABILITY` \| `SELL` |
-| `unitPrice`  | `number`            | Price per unit of the activity                                                |
+| Field        | Type                | Description                                                         |
+| ------------ | ------------------- | ------------------------------------------------------------------- |
+| `accountId`  | `string` (optional) | Id of the account                                                   |
+| `comment`    | `string` (optional) | Comment of the activity                                             |
+| `currency`   | `string`            | `CHF` \| `EUR` \| `USD` etc.                                        |
+| `dataSource` | `string`            | `COINGECKO` \| `MANUAL` \| `YAHOO`                                  |
+| `date`       | `string`            | Date in the format `ISO-8601`                                       |
+| `fee`        | `number`            | Fee of the activity                                                 |
+| `quantity`   | `number`            | Quantity of the activity                                            |
+| `symbol`     | `string`            | Symbol of the activity (suitable for `dataSource`)                  |
+| `type`       | `string`            | `BUY` \| `DIVIDEND` \| `FEE` \| `INTEREST` \| `LIABILITY` \| `SELL` |
+| `unitPrice`  | `number`            | Price per unit of the activity                                      |
 
 #### Response
 

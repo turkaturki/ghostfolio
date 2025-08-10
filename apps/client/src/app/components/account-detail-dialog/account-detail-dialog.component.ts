@@ -2,6 +2,7 @@ import { CreateAccountBalanceDto } from '@ghostfolio/api/app/account-balance/cre
 import { Activity } from '@ghostfolio/api/app/order/interfaces/activities.interface';
 import { DataService } from '@ghostfolio/client/services/data.service';
 import { UserService } from '@ghostfolio/client/services/user/user.service';
+import { NUMERICAL_PRECISION_THRESHOLD_6_FIGURES } from '@ghostfolio/common/config';
 import { DATE_FORMAT, downloadAsFile } from '@ghostfolio/common/helper';
 import {
   AccountBalancesResponse,
@@ -9,8 +10,8 @@ import {
   PortfolioPosition,
   User
 } from '@ghostfolio/common/interfaces';
-import { paths } from '@ghostfolio/common/paths';
 import { hasPermission, permissions } from '@ghostfolio/common/permissions';
+import { internalRoutes } from '@ghostfolio/common/routes/routes';
 import { OrderWithAccount } from '@ghostfolio/common/types';
 
 import {
@@ -27,6 +28,12 @@ import { MatTableDataSource } from '@angular/material/table';
 import { Router } from '@angular/router';
 import { Big } from 'big.js';
 import { format, parseISO } from 'date-fns';
+import { addIcons } from 'ionicons';
+import {
+  cashOutline,
+  swapVerticalOutline,
+  walletOutline
+} from 'ionicons/icons';
 import { isNumber } from 'lodash';
 import { forkJoin, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -45,9 +52,11 @@ export class AccountDetailDialog implements OnDestroy, OnInit {
   public accountBalances: AccountBalancesResponse['balances'];
   public activities: OrderWithAccount[];
   public balance: number;
+  public balancePrecision = 2;
   public currency: string;
   public dataSource: MatTableDataSource<Activity>;
   public equity: number;
+  public equityPrecision = 2;
   public hasPermissionToDeleteAccountBalance: boolean;
   public historicalDataItems: HistoricalDataItem[];
   public holdings: PortfolioPosition[];
@@ -86,6 +95,8 @@ export class AccountDetailDialog implements OnDestroy, OnInit {
           this.changeDetectorRef.markForCheck();
         }
       });
+
+    addIcons({ cashOutline, swapVerticalOutline, walletOutline });
   }
 
   public ngOnInit() {
@@ -93,9 +104,12 @@ export class AccountDetailDialog implements OnDestroy, OnInit {
   }
 
   public onCloneActivity(aActivity: Activity) {
-    this.router.navigate(['/' + paths.portfolio, paths.activities], {
-      queryParams: { activityId: aActivity.id, createDialog: true }
-    });
+    this.router.navigate(
+      internalRoutes.portfolio.subRoutes.activities.routerLink,
+      {
+        queryParams: { activityId: aActivity.id, createDialog: true }
+      }
+    );
 
     this.dialogRef.close();
   }
@@ -152,9 +166,12 @@ export class AccountDetailDialog implements OnDestroy, OnInit {
   }
 
   public onUpdateActivity(aActivity: Activity) {
-    this.router.navigate(['/' + paths.portfolio, paths.activities], {
-      queryParams: { activityId: aActivity.id, editDialog: true }
-    });
+    this.router.navigate(
+      internalRoutes.portfolio.subRoutes.activities.routerLink,
+      {
+        queryParams: { activityId: aActivity.id, editDialog: true }
+      }
+    );
 
     this.dialogRef.close();
   }
@@ -168,22 +185,37 @@ export class AccountDetailDialog implements OnDestroy, OnInit {
           balance,
           currency,
           name,
-          Platform,
+          platform,
           transactionCount,
           value,
           valueInBaseCurrency
         }) => {
           this.balance = balance;
+
+          if (
+            this.balance >= NUMERICAL_PRECISION_THRESHOLD_6_FIGURES &&
+            this.data.deviceType === 'mobile'
+          ) {
+            this.balancePrecision = 0;
+          }
+
           this.currency = currency;
 
           if (isNumber(balance) && isNumber(value)) {
             this.equity = new Big(value).minus(balance).toNumber();
+
+            if (
+              this.data.deviceType === 'mobile' &&
+              this.equity >= NUMERICAL_PRECISION_THRESHOLD_6_FIGURES
+            ) {
+              this.equityPrecision = 0;
+            }
           } else {
             this.equity = null;
           }
 
           this.name = name;
-          this.platformName = Platform?.name ?? '-';
+          this.platformName = platform?.name ?? '-';
           this.transactionCount = transactionCount;
           this.valueInBaseCurrency = valueInBaseCurrency;
 

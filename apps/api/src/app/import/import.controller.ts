@@ -71,8 +71,10 @@ export class ImportController {
       const activities = await this.importService.import({
         isDryRun,
         maxActivitiesToImport,
-        accountsDto: importData.accounts ?? [],
+        accountsWithBalancesDto: importData.accounts ?? [],
         activitiesDto: importData.activities,
+        assetProfilesWithMarketDataDto: importData.assetProfiles ?? [],
+        tagsDto: importData.tags ?? [],
         user: this.request.user
       });
 
@@ -100,7 +102,8 @@ export class ImportController {
   ): Promise<ImportResponse> {
     const activities = await this.importService.getDividends({
       dataSource,
-      symbol
+      symbol,
+      userId: this.request.user.id
     });
 
     return { activities };

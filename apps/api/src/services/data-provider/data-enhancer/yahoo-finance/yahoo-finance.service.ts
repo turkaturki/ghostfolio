@@ -23,7 +23,9 @@ import type { Price } from 'yahoo-finance2/esm/src/modules/quoteSummary-iface';
 
 @Injectable()
 export class YahooFinanceDataEnhancerService implements DataEnhancerInterface {
-  private readonly yahooFinance = new YahooFinance();
+  private readonly yahooFinance = new YahooFinance({
+    suppressNotices: ['yahooSurvey']
+  });
 
   public constructor(
     private readonly cryptocurrencyService: CryptocurrencyService
@@ -61,7 +63,8 @@ export class YahooFinanceDataEnhancerService implements DataEnhancerInterface {
       if (
         isCurrency(
           aSymbol.substring(0, aSymbol.length - DEFAULT_CURRENCY.length)
-        )
+        ) &&
+        isCurrency(aSymbol.substring(aSymbol.length - DEFAULT_CURRENCY.length))
       ) {
         return `${aSymbol}=X`;
       } else if (

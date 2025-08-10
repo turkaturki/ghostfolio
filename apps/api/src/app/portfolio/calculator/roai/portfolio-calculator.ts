@@ -108,8 +108,7 @@ export class RoaiPortfolioCalculator extends PortfolioCalculator {
       createdAt: new Date(),
       errors: [],
       historicalData: [],
-      totalLiabilitiesWithCurrencyEffect: new Big(0),
-      totalValuablesWithCurrencyEffect: new Big(0)
+      totalLiabilitiesWithCurrencyEffect: new Big(0)
     };
   }
 
@@ -179,8 +178,6 @@ export class RoaiPortfolioCalculator extends PortfolioCalculator {
     let totalLiabilitiesInBaseCurrency = new Big(0);
     let totalQuantityFromBuyTransactions = new Big(0);
     let totalUnits = new Big(0);
-    let totalValuables = new Big(0);
-    let totalValuablesInBaseCurrency = new Big(0);
     let valueAtStartDate: Big;
     let valueAtStartDateWithCurrencyEffect: Big;
 
@@ -224,9 +221,7 @@ export class RoaiPortfolioCalculator extends PortfolioCalculator {
         totalInvestment: new Big(0),
         totalInvestmentWithCurrencyEffect: new Big(0),
         totalLiabilities: new Big(0),
-        totalLiabilitiesInBaseCurrency: new Big(0),
-        totalValuables: new Big(0),
-        totalValuablesInBaseCurrency: new Big(0)
+        totalLiabilitiesInBaseCurrency: new Big(0)
       };
     }
 
@@ -236,7 +231,20 @@ export class RoaiPortfolioCalculator extends PortfolioCalculator {
     const startDateString = format(start, DATE_FORMAT);
 
     const unitPriceAtStartDate = marketSymbolMap[startDateString]?.[symbol];
-    const unitPriceAtEndDate = marketSymbolMap[endDateString]?.[symbol];
+    let unitPriceAtEndDate = marketSymbolMap[endDateString]?.[symbol];
+
+    let latestActivity = orders.at(-1);
+
+    if (
+      dataSource === 'MANUAL' &&
+      ['BUY', 'SELL'].includes(latestActivity?.type) &&
+      latestActivity?.unitPrice &&
+      !unitPriceAtEndDate
+    ) {
+      // For BUY / SELL activities with a MANUAL data source where no historical market price is available,
+      // the calculation should fall back to using the activity’s unit price.
+      unitPriceAtEndDate = latestActivity.unitPrice;
+    }
 
     if (
       !unitPriceAtEndDate ||
@@ -274,9 +282,7 @@ export class RoaiPortfolioCalculator extends PortfolioCalculator {
         totalInvestment: new Big(0),
         totalInvestmentWithCurrencyEffect: new Big(0),
         totalLiabilities: new Big(0),
-        totalLiabilitiesInBaseCurrency: new Big(0),
-        totalValuables: new Big(0),
-        totalValuablesInBaseCurrency: new Big(0)
+        totalLiabilitiesInBaseCurrency: new Big(0)
       };
     }
 
@@ -351,9 +357,10 @@ export class RoaiPortfolioCalculator extends PortfolioCalculator {
         });
       }
 
-      const lastOrder = orders.at(-1);
+      latestActivity = orders.at(-1);
 
-      lastUnitPrice = lastOrder.unitPriceFromMarketData ?? lastOrder.unitPrice;
+      lastUnitPrice =
+        latestActivity.unitPriceFromMarketData ?? latestActivity.unitPrice;
     }
 
     // Sort orders so that the start and end placeholder order are at the correct
@@ -411,13 +418,6 @@ export class RoaiPortfolioCalculator extends PortfolioCalculator {
         totalInterest = totalInterest.plus(interest);
         totalInterestInBaseCurrency = totalInterestInBaseCurrency.plus(
           interest.mul(exchangeRateAtOrderDate ?? 1)
-        );
-      } else if (order.type === 'ITEM') {
-        const valuables = order.quantity.mul(order.unitPrice);
-
-        totalValuables = totalValuables.plus(valuables);
-        totalValuablesInBaseCurrency = totalValuablesInBaseCurrency.plus(
-          valuables.mul(exchangeRateAtOrderDate ?? 1)
         );
       } else if (order.type === 'LIABILITY') {
         const liabilities = order.quantity.mul(order.unitPrice);
@@ -971,8 +971,6 @@ export class RoaiPortfolioCalculator extends PortfolioCalculator {
       totalInvestmentWithCurrencyEffect,
       totalLiabilities,
       totalLiabilitiesInBaseCurrency,
-      totalValuables,
-      totalValuablesInBaseCurrency,
       grossPerformance: totalGrossPerformance,
       grossPerformanceWithCurrencyEffect:
         totalGrossPerformanceWithCurrencyEffect,

@@ -1,30 +1,51 @@
 import { ConfirmationDialogType } from '@ghostfolio/client/core/notification/confirmation-dialog/confirmation-dialog.type';
 import { NotificationService } from '@ghostfolio/client/core/notification/notification.service';
-import { DEFAULT_LANGUAGE_CODE } from '@ghostfolio/common/config';
 import { Access, User } from '@ghostfolio/common/interfaces';
-import { paths } from '@ghostfolio/common/paths';
+import { publicRoutes } from '@ghostfolio/common/routes/routes';
 
-import { Clipboard } from '@angular/cdk/clipboard';
+import { Clipboard, ClipboardModule } from '@angular/cdk/clipboard';
+import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  CUSTOM_ELEMENTS_SCHEMA,
   EventEmitter,
   Input,
   OnChanges,
   Output
 } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatTableDataSource } from '@angular/material/table';
+import { MatTableDataSource, MatTableModule } from '@angular/material/table';
+import { RouterModule } from '@angular/router';
+import { IonIcon } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import {
+  ellipsisHorizontal,
+  linkOutline,
+  lockClosedOutline,
+  lockOpenOutline
+} from 'ionicons/icons';
 import ms from 'ms';
 
 @Component({
-  selector: 'gf-access-table',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    ClipboardModule,
+    CommonModule,
+    IonIcon,
+    MatButtonModule,
+    MatMenuModule,
+    MatTableModule,
+    RouterModule
+  ],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
+  selector: 'gf-access-table',
   templateUrl: './access-table.component.html',
-  styleUrls: ['./access-table.component.scss'],
-  standalone: false
+  styleUrls: ['./access-table.component.scss']
 })
-export class AccessTableComponent implements OnChanges {
+export class GfAccessTableComponent implements OnChanges {
   @Input() accesses: Access[];
   @Input() showActions: boolean;
   @Input() user: User;
@@ -39,7 +60,14 @@ export class AccessTableComponent implements OnChanges {
     private clipboard: Clipboard,
     private notificationService: NotificationService,
     private snackBar: MatSnackBar
-  ) {}
+  ) {
+    addIcons({
+      ellipsisHorizontal,
+      linkOutline,
+      lockClosedOutline,
+      lockOpenOutline
+    });
+  }
 
   public ngOnChanges() {
     this.displayedColumns = ['alias', 'grantee', 'type', 'details'];
@@ -54,9 +82,9 @@ export class AccessTableComponent implements OnChanges {
   }
 
   public getPublicUrl(aId: string): string {
-    const languageCode = this.user?.settings?.language ?? DEFAULT_LANGUAGE_CODE;
+    const languageCode = this.user.settings.language;
 
-    return `${this.baseUrl}/${languageCode}/${paths.public}/${aId}`;
+    return `${this.baseUrl}/${languageCode}/${publicRoutes.public.path}/${aId}`;
   }
 
   public onCopyUrlToClipboard(aId: string): void {

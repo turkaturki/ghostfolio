@@ -13,6 +13,7 @@ const locales = {
   DATA_IMPORT_AND_EXPORT_TOOLTIP_OSS: $localize`Switch to Ghostfolio Premium easily`,
   DATA_IMPORT_AND_EXPORT_TOOLTIP_PREMIUM: $localize`Switch to Ghostfolio Open Source or Ghostfolio Basic easily`,
   EMERGENCY_FUND: $localize`Emergency Fund`,
+  EXCLUDE_FROM_ANALYSIS: $localize`Exclude from Analysis`,
   Global: $localize`Global`,
   GRANT: $localize`Grant`,
   HIGHER_RISK: $localize`Higher Risk`,
@@ -41,7 +42,7 @@ const locales = {
   SELL: $localize`Sell`,
 
   // AssetClass (enum)
-  CASH: $localize`Cash`,
+  ALTERNATIVE_INVESTMENT: $localize`Alternative Investment`,
   COMMODITY: $localize`Commodity`,
   EQUITY: $localize`Equity`,
   FIXED_INCOME: $localize`Fixed Income`,
@@ -50,6 +51,8 @@ const locales = {
 
   // AssetSubClass (enum)
   BOND: $localize`Bond`,
+  CASH: $localize`Cash`,
+  COLLECTIBLE: $localize`Collectible`,
   CRYPTOCURRENCY: $localize`Cryptocurrency`,
   ETF: $localize`ETF`,
   MUTUALFUND: $localize`Mutual Fund`,
@@ -71,6 +74,7 @@ const locales = {
 
   // Countries
   Armenia: $localize`Armenia`,
+  Argentina: $localize`Argentina`,
   Australia: $localize`Australia`,
   Austria: $localize`Austria`,
   Belgium: $localize`Belgium`,
@@ -82,6 +86,7 @@ const locales = {
   France: $localize`France`,
   Germany: $localize`Germany`,
   India: $localize`India`,
+  Indonesia: $localize`Indonesia`,
   Italy: $localize`Italy`,
   Japan: $localize`Japan`,
   Netherlands: $localize`Netherlands`,

@@ -89,6 +89,7 @@ export class AccountController {
   public async getAllAccounts(
     @Headers(HEADER_KEY_IMPERSONATION.toLowerCase()) impersonationId: string,
     @Query('dataSource') filterByDataSource?: string,
+    @Query('query') filterBySearchQuery?: string,
     @Query('symbol') filterBySymbol?: string
   ): Promise<AccountsResponse> {
     const impersonationUserId =
@@ -96,6 +97,7 @@ export class AccountController {
 
     const filters = this.apiService.buildFiltersFromQueryParams({
       filterByDataSource,
+      filterBySearchQuery,
       filterBySymbol
     });
 
@@ -134,7 +136,7 @@ export class AccountController {
   ): Promise<AccountBalancesResponse> {
     return this.accountBalanceService.getAccountBalances({
       filters: [{ id, type: 'ACCOUNT' }],
-      userCurrency: this.request.user.Settings.settings.baseCurrency,
+      userCurrency: this.request.user.settings.settings.baseCurrency,
       userId: this.request.user.id
     });
   }
@@ -152,8 +154,8 @@ export class AccountController {
       return this.accountService.createAccount(
         {
           ...data,
-          Platform: { connect: { id: platformId } },
-          User: { connect: { id: this.request.user.id } }
+          platform: { connect: { id: platformId } },
+          user: { connect: { id: this.request.user.id } }
         },
         this.request.user.id
       );
@@ -163,7 +165,7 @@ export class AccountController {
       return this.accountService.createAccount(
         {
           ...data,
-          User: { connect: { id: this.request.user.id } }
+          user: { connect: { id: this.request.user.id } }
         },
         this.request.user.id
       );
@@ -250,8 +252,8 @@ export class AccountController {
         {
           data: {
             ...data,
-            Platform: { connect: { id: platformId } },
-            User: { connect: { id: this.request.user.id } }
+            platform: { connect: { id: platformId } },
+            user: { connect: { id: this.request.user.id } }
           },
           where: {
             id_userId: {
@@ -270,10 +272,10 @@ export class AccountController {
         {
           data: {
             ...data,
-            Platform: originalAccount.platformId
+            platform: originalAccount.platformId
               ? { disconnect: true }
               : undefined,
-            User: { connect: { id: this.request.user.id } }
+            user: { connect: { id: this.request.user.id } }
           },
           where: {
             id_userId: {

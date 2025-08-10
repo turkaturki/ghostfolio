@@ -4,16 +4,22 @@ import { DataService } from '@ghostfolio/client/services/data.service';
 import { UserService } from '@ghostfolio/client/services/user/user.service';
 import { getDateFormatString } from '@ghostfolio/common/helper';
 import { User } from '@ghostfolio/common/interfaces';
-import { paths } from '@ghostfolio/common/paths';
 import { hasPermission, permissions } from '@ghostfolio/common/permissions';
+import { publicRoutes } from '@ghostfolio/common/routes/routes';
+import { GfMembershipCardComponent } from '@ghostfolio/ui/membership-card';
+import { GfPremiumIndicatorComponent } from '@ghostfolio/ui/premium-indicator';
 
+import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
   OnDestroy
 } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { RouterModule } from '@angular/router';
 import ms, { StringValue } from 'ms';
 import { StripeService } from 'ngx-stripe';
 import { EMPTY, Subject } from 'rxjs';
@@ -21,12 +27,19 @@ import { catchError, switchMap, takeUntil } from 'rxjs/operators';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    CommonModule,
+    GfMembershipCardComponent,
+    GfPremiumIndicatorComponent,
+    MatButtonModule,
+    MatCardModule,
+    RouterModule
+  ],
   selector: 'gf-user-account-membership',
   styleUrls: ['./user-account-membership.scss'],
-  templateUrl: './user-account-membership.html',
-  standalone: false
+  templateUrl: './user-account-membership.html'
 })
-export class UserAccountMembershipComponent implements OnDestroy {
+export class GfUserAccountMembershipComponent implements OnDestroy {
   public baseCurrency: string;
   public coupon: number;
   public couponId: string;
@@ -37,7 +50,7 @@ export class UserAccountMembershipComponent implements OnDestroy {
   public hasPermissionToUpdateUserSettings: boolean;
   public price: number;
   public priceId: string;
-  public routerLinkPricing = ['/' + paths.pricing];
+  public routerLinkPricing = publicRoutes.pricing.routerLink;
   public trySubscriptionMail =
     'mailto:hi@ghostfol.io?Subject=Ghostfolio Premium Trial&body=Hello%0D%0DI am interested in Ghostfolio Premium. Can you please send me a coupon code to try it for some time?%0D%0DKind regards';
   public user: User;

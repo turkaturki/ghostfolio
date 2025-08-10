@@ -2,11 +2,13 @@ import { NotificationService } from '@ghostfolio/client/core/notification/notifi
 import { DataService } from '@ghostfolio/client/services/data.service';
 import { UserService } from '@ghostfolio/client/services/user/user.service';
 import { User } from '@ghostfolio/common/interfaces';
-import { paths } from '@ghostfolio/common/paths';
 import { hasPermission, permissions } from '@ghostfolio/common/permissions';
+import { publicRoutes } from '@ghostfolio/common/routes/routes';
 import { translate } from '@ghostfolio/ui/i18n';
 
 import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
+import { addIcons } from 'ionicons';
+import { checkmarkCircleOutline, checkmarkOutline } from 'ionicons/icons';
 import { StringValue } from 'ms';
 import { StripeService } from 'ngx-stripe';
 import { Subject } from 'rxjs';
@@ -41,8 +43,8 @@ export class PricingPageComponent implements OnDestroy, OnInit {
   public professionalDataProviderTooltipPremium = translate(
     'PROFESSIONAL_DATA_PROVIDER_TOOLTIP_PREMIUM'
   );
-  public routerLinkFeatures = ['/' + paths.features];
-  public routerLinkRegister = ['/' + paths.register];
+  public routerLinkFeatures = publicRoutes.features.routerLink;
+  public routerLinkRegister = publicRoutes.register.routerLink;
   public user: User;
 
   private unsubscribeSubject = new Subject<void>();
@@ -53,7 +55,9 @@ export class PricingPageComponent implements OnDestroy, OnInit {
     private notificationService: NotificationService,
     private stripeService: StripeService,
     private userService: UserService
-  ) {}
+  ) {
+    addIcons({ checkmarkCircleOutline, checkmarkOutline });
+  }
 
   public ngOnInit() {
     const { baseCurrency, subscriptionOffer } = this.dataService.fetchInfo();

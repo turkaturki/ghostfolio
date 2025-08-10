@@ -13,25 +13,41 @@ import {
   OnInit,
   ViewChild
 } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
-import { MatSort } from '@angular/material/sort';
-import { MatTableDataSource } from '@angular/material/table';
-import { ActivatedRoute, Router } from '@angular/router';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatSort, MatSortModule } from '@angular/material/sort';
+import { MatTableDataSource, MatTableModule } from '@angular/material/table';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { IonIcon } from '@ionic/angular/standalone';
 import { Tag } from '@prisma/client';
+import { addIcons } from 'ionicons';
+import {
+  createOutline,
+  ellipsisHorizontal,
+  trashOutline
+} from 'ionicons/icons';
 import { get } from 'lodash';
 import { DeviceDetectorService } from 'ngx-device-detector';
 import { Subject, takeUntil } from 'rxjs';
 
-import { CreateOrUpdateTagDialog } from './create-or-update-tag-dialog/create-or-update-tag-dialog.component';
+import { GfCreateOrUpdateTagDialogComponent } from './create-or-update-tag-dialog/create-or-update-tag-dialog.component';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    IonIcon,
+    MatButtonModule,
+    MatMenuModule,
+    MatSortModule,
+    MatTableModule,
+    RouterModule
+  ],
   selector: 'gf-admin-tag',
   styleUrls: ['./admin-tag.component.scss'],
-  templateUrl: './admin-tag.component.html',
-  standalone: false
+  templateUrl: './admin-tag.component.html'
 })
-export class AdminTagComponent implements OnInit, OnDestroy {
+export class GfAdminTagComponent implements OnInit, OnDestroy {
   @ViewChild(MatSort) sort: MatSort;
 
   public dataSource = new MatTableDataSource<Tag>();
@@ -68,6 +84,8 @@ export class AdminTagComponent implements OnInit, OnDestroy {
           }
         }
       });
+
+    addIcons({ createOutline, ellipsisHorizontal, trashOutline });
   }
 
   public ngOnInit() {
@@ -131,7 +149,7 @@ export class AdminTagComponent implements OnInit, OnDestroy {
   }
 
   private openCreateTagDialog() {
-    const dialogRef = this.dialog.open(CreateOrUpdateTagDialog, {
+    const dialogRef = this.dialog.open(GfCreateOrUpdateTagDialogComponent, {
       data: {
         tag: {
           name: null
@@ -166,7 +184,7 @@ export class AdminTagComponent implements OnInit, OnDestroy {
   }
 
   private openUpdateTagDialog({ id, name }) {
-    const dialogRef = this.dialog.open(CreateOrUpdateTagDialog, {
+    const dialogRef = this.dialog.open(GfCreateOrUpdateTagDialogComponent, {
       data: {
         tag: {
           id,

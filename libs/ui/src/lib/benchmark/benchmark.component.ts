@@ -6,9 +6,6 @@ import {
   Benchmark,
   User
 } from '@ghostfolio/common/interfaces';
-import { translate } from '@ghostfolio/ui/i18n';
-import { GfTrendIndicatorComponent } from '@ghostfolio/ui/trend-indicator';
-import { GfValueComponent } from '@ghostfolio/ui/value';
 
 import { CommonModule } from '@angular/common';
 import {
@@ -19,17 +16,25 @@ import {
   Input,
   OnChanges,
   OnDestroy,
-  Output
+  Output,
+  ViewChild
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatMenuModule } from '@angular/material/menu';
-import { MatTableModule } from '@angular/material/table';
+import { MatSort, MatSortModule } from '@angular/material/sort';
+import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { isNumber } from 'lodash';
+import { IonIcon } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { ellipsisHorizontal, trashOutline } from 'ionicons/icons';
+import { get, isNumber } from 'lodash';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { Subject, takeUntil } from 'rxjs';
 
+import { translate } from '../i18n';
+import { GfTrendIndicatorComponent } from '../trend-indicator/trend-indicator.component';
+import { GfValueComponent } from '../value/value.component';
 import { GfBenchmarkDetailDialogComponent } from './benchmark-detail-dialog/benchmark-detail-dialog.component';
 import { BenchmarkDetailDialogParams } from './benchmark-detail-dialog/interfaces/interfaces';
 
@@ -39,8 +44,10 @@ import { BenchmarkDetailDialogParams } from './benchmark-detail-dialog/interface
     CommonModule,
     GfTrendIndicatorComponent,
     GfValueComponent,
+    IonIcon,
     MatButtonModule,
     MatMenuModule,
+    MatSortModule,
     MatTableModule,
     NgxSkeletonLoaderModule,
     RouterModule
@@ -59,6 +66,9 @@ export class GfBenchmarkComponent implements OnChanges, OnDestroy {
 
   @Output() itemDeleted = new EventEmitter<AssetProfileIdentifier>();
 
+  @ViewChild(MatSort) sort: MatSort;
+
+  public dataSource = new MatTableDataSource<Benchmark>([]);
   public displayedColumns = [
     'name',
     'date',
@@ -93,10 +103,16 @@ export class GfBenchmarkComponent implements OnChanges, OnDestroy {
           });
         }
       });
+
+    addIcons({ ellipsisHorizontal, trashOutline });
   }
 
   public ngOnChanges() {
     if (this.benchmarks) {
+      this.dataSource.data = this.benchmarks;
+      this.dataSource.sort = this.sort;
+      this.dataSource.sortingDataAccessor = get;
+
       this.isLoading = false;
     }
 

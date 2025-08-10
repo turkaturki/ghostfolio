@@ -317,7 +317,7 @@ export class PortfolioController {
 
     const impersonationUserId =
       await this.impersonationService.validateImpersonationId(impersonationId);
-    const userCurrency = this.request.user.Settings.settings.baseCurrency;
+    const userCurrency = this.request.user.settings.settings.baseCurrency;
 
     const { endDate, startDate } = getIntervalFromDateRange(dateRange);
 
@@ -375,11 +375,12 @@ export class PortfolioController {
     @Param('dataSource') dataSource: DataSource,
     @Param('symbol') symbol: string
   ): Promise<PortfolioHoldingResponse> {
-    const holding = await this.portfolioService.getHolding(
+    const holding = await this.portfolioService.getHolding({
       dataSource,
       impersonationId,
-      symbol
-    );
+      symbol,
+      userId: this.request.user.id
+    });
 
     if (!holding) {
       throw new HttpException(
@@ -417,14 +418,14 @@ export class PortfolioController {
       filterByTags
     });
 
-    const { holdings } = await this.portfolioService.getDetails({
+    const holdings = await this.portfolioService.getHoldings({
       dateRange,
       filters,
       impersonationId,
       userId: this.request.user.id
     });
 
-    return { holdings: Object.values(holdings) };
+    return { holdings };
   }
 
   @Get('investments')
@@ -453,7 +454,8 @@ export class PortfolioController {
       filters,
       groupBy,
       impersonationId,
-      savingsRate: this.request.user?.Settings?.settings.savingsRate
+      savingsRate: this.request.user?.settings?.settings.savingsRate,
+      userId: this.request.user.id
     });
 
     if (
@@ -536,7 +538,7 @@ export class PortfolioController {
         user: this.request.user
       }) ||
       isRestrictedView(this.request.user) ||
-      this.request.user.Settings.settings.viewMode === 'ZEN'
+      this.request.user.settings.settings.viewMode === 'ZEN'
     ) {
       performanceInformation.chart = performanceInformation.chart.map(
         ({
@@ -622,11 +624,12 @@ export class PortfolioController {
     @Param('dataSource') dataSource: DataSource,
     @Param('symbol') symbol: string
   ): Promise<PortfolioHoldingResponse> {
-    const holding = await this.portfolioService.getHolding(
+    const holding = await this.portfolioService.getHolding({
       dataSource,
       impersonationId,
-      symbol
-    );
+      symbol,
+      userId: this.request.user.id
+    });
 
     if (!holding) {
       throw new HttpException(
@@ -643,17 +646,20 @@ export class PortfolioController {
   public async getReport(
     @Headers(HEADER_KEY_IMPERSONATION.toLowerCase()) impersonationId: string
   ): Promise<PortfolioReportResponse> {
-    const report = await this.portfolioService.getReport(impersonationId);
+    const report = await this.portfolioService.getReport({
+      impersonationId,
+      userId: this.request.user.id
+    });
 
     if (
       this.configurationService.get('ENABLE_FEATURE_SUBSCRIPTION') &&
       this.request.user.subscription.type === 'Basic'
     ) {
-      for (const rule in report.rules) {
-        report.rules[rule] = null;
+      for (const rule in report.xRay.rules) {
+        report.xRay.rules[rule] = null;
       }
 
-      report.statistics = {
+      report.xRay.statistics = {
         rulesActiveCount: 0,
         rulesFulfilledCount: 0
       };
@@ -672,11 +678,12 @@ export class PortfolioController {
     @Param('dataSource') dataSource: DataSource,
     @Param('symbol') symbol: string
   ): Promise<void> {
-    const holding = await this.portfolioService.getHolding(
+    const holding = await this.portfolioService.getHolding({
       dataSource,
       impersonationId,
-      symbol
-    );
+      symbol,
+      userId: this.request.user.id
+    });
 
     if (!holding) {
       throw new HttpException(
@@ -707,11 +714,12 @@ export class PortfolioController {
     @Param('dataSource') dataSource: DataSource,
     @Param('symbol') symbol: string
   ): Promise<void> {
-    const holding = await this.portfolioService.getHolding(
+    const holding = await this.portfolioService.getHolding({
       dataSource,
       impersonationId,
-      symbol
-    );
+      symbol,
+      userId: this.request.user.id
+    });
 
     if (!holding) {
       throw new HttpException(

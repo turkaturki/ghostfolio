@@ -1,16 +1,19 @@
 import { AccountService } from '@ghostfolio/api/app/account/account.service';
 import { OrderService } from '@ghostfolio/api/app/order/order.service';
 import { environment } from '@ghostfolio/api/environments/environment';
+import { MarketDataService } from '@ghostfolio/api/services/market-data/market-data.service';
 import { TagService } from '@ghostfolio/api/services/tag/tag.service';
 import { Filter, Export } from '@ghostfolio/common/interfaces';
 
 import { Injectable } from '@nestjs/common';
-import { Platform } from '@prisma/client';
+import { Platform, Prisma } from '@prisma/client';
+import { groupBy, uniqBy } from 'lodash';
 
 @Injectable()
 export class ExportService {
   public constructor(
     private readonly accountService: AccountService,
+    private readonly marketDataService: MarketDataService,
     private readonly orderService: OrderService,
     private readonly tagService: TagService
   ) {}
@@ -26,6 +29,9 @@ export class ExportService {
     userCurrency: string;
     userId: string;
   }): Promise<Export> {
+    const { ACCOUNT: filtersByAccount } = groupBy(filters, ({ type }) => {
+      return type;
+    });
     const platformsMap: { [platformId: string]: Platform } = {};
 
     let { activities } = await this.orderService.getOrders({
@@ -35,7 +41,7 @@ export class ExportService {
       includeDrafts: true,
       sortColumn: 'date',
       sortDirection: 'asc',
-      withExcludedAccounts: true
+      withExcludedAccountsAndActivities: true
     });
 
     if (activityIds?.length > 0) {
@@ -44,20 +50,30 @@ export class ExportService {
       });
     }
 
+    const where: Prisma.AccountWhereInput = { userId };
+
+    if (filtersByAccount?.length > 0) {
+      where.id = {
+        in: filtersByAccount.map(({ id }) => {
+          return id;
+        })
+      };
+    }
+
     const accounts = (
       await this.accountService.accounts({
+        where,
         include: {
           balances: true,
-          Platform: true
+          platform: true
         },
         orderBy: {
           name: 'asc'
-        },
-        where: { userId }
+        }
       })
     )
       .filter(({ id }) => {
-        return activities.length > 0
+        return activityIds?.length > 0
           ? activities.some(({ accountId }) => {
               return accountId === id;
             })
@@ -72,7 +88,7 @@ export class ExportService {
           id,
           isExcluded,
           name,
-          Platform: platform,
+          platform,
           platformId
         }) => {
           if (platformId) {
@@ -94,16 +110,47 @@ export class ExportService {
         }
       );
 
+    const customAssetProfiles = uniqBy(
+      activities
+        .map(({ SymbolProfile }) => {
+          return SymbolProfile;
+        })
+        .filter(({ userId: assetProfileUserId }) => {
+          return assetProfileUserId === userId;
+        }),
+      ({ id }) => {
+        return id;
+      }
+    );
+
+    const marketDataByAssetProfile = Object.fromEntries(
+      await Promise.all(
+        customAssetProfiles.map(async ({ dataSource, id, symbol }) => {
+          const marketData = (
+            await this.marketDataService.marketDataItems({
+              where: { dataSource, symbol }
+            })
+          ).map(({ date, marketPrice }) => ({
+            date: date.toISOString(),
+            marketPrice
+          }));
+
+          return [id, marketData] as const;
+        })
+      )
+    );
+
     const tags = (await this.tagService.getTagsForUser(userId))
-      .filter(
-        ({ id, isUsed }) =>
+      .filter(({ id, isUsed }) => {
+        return (
           isUsed &&
           activities.some((activity) => {
             return activity.tags.some(({ id: tagId }) => {
               return tagId === id;
             });
           })
-      )
+        );
+      })
       .map(({ id, name }) => {
         return {
           id,
@@ -114,6 +161,54 @@ export class ExportService {
     return {
       meta: { date: new Date().toISOString(), version: environment.version },
       accounts,
+      assetProfiles: customAssetProfiles.map(
+        ({
+          assetClass,
+          assetSubClass,
+          comment,
+          countries,
+          currency,
+          cusip,
+          dataSource,
+          figi,
+          figiComposite,
+          figiShareClass,
+          holdings,
+          id,
+          isActive,
+          isin,
+          name,
+          scraperConfiguration,
+          sectors,
+          symbol,
+          symbolMapping,
+          url
+        }) => {
+          return {
+            assetClass,
+            assetSubClass,
+            comment,
+            countries: countries as unknown as Prisma.JsonArray,
+            currency,
+            cusip,
+            dataSource,
+            figi,
+            figiComposite,
+            figiShareClass,
+            holdings: holdings as unknown as Prisma.JsonArray,
+            isActive,
+            isin,
+            marketData: marketDataByAssetProfile[id],
+            name,
+            scraperConfiguration:
+              scraperConfiguration as unknown as Prisma.JsonArray,
+            sectors: sectors as unknown as Prisma.JsonArray,
+            symbol,
+            symbolMapping,
+            url
+          };
+        }
+      ),
       platforms: Object.values(platformsMap),
       tags,
       activities: activities.map(
@@ -141,9 +236,7 @@ export class ExportService {
             currency: currency ?? SymbolProfile.currency,
             dataSource: SymbolProfile.dataSource,
             date: date.toISOString(),
-            symbol: ['FEE', 'INTEREST', 'ITEM', 'LIABILITY'].includes(type)
-              ? SymbolProfile.name
-              : SymbolProfile.symbol,
+            symbol: SymbolProfile.symbol,
             tags: currentTags.map(({ id: tagId }) => {
               return tagId;
             })

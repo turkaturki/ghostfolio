@@ -1,4 +1,4 @@
-import { paths } from '@ghostfolio/common/paths';
+import { publicRoutes } from '@ghostfolio/common/routes/routes';
 
 import { CommonModule } from '@angular/common';
 import {
@@ -8,10 +8,13 @@ import {
   Input
 } from '@angular/core';
 import { RouterModule } from '@angular/router';
+import { IonIcon } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { diamondOutline } from 'ionicons/icons';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, IonIcon, RouterModule],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   selector: 'gf-premium-indicator',
   styleUrls: ['./premium-indicator.component.scss'],
@@ -20,5 +23,9 @@ import { RouterModule } from '@angular/router';
 export class GfPremiumIndicatorComponent {
   @Input() enableLink = true;
 
-  public routerLinkPricing = ['/' + paths.pricing];
+  public routerLinkPricing = publicRoutes.pricing.routerLink;
+
+  public constructor() {
+    addIcons({ diamondOutline });
+  }
 }

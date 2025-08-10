@@ -1,9 +1,16 @@
 import { TokenStorageService } from '@ghostfolio/client/services/token-storage.service';
 import { DEFAULT_PAGE_SIZE } from '@ghostfolio/common/config';
-import { getDateFormatString, getEmojiFlag } from '@ghostfolio/common/helper';
+import {
+  getDateFnsLocale,
+  getDateFormatString,
+  getEmojiFlag
+} from '@ghostfolio/common/helper';
 import { AdminUsers, InfoItem, User } from '@ghostfolio/common/interfaces';
 import { hasPermission, permissions } from '@ghostfolio/common/permissions';
+import { GfPremiumIndicatorComponent } from '@ghostfolio/ui/premium-indicator';
+import { GfValueComponent } from '@ghostfolio/ui/value';
 
+import { CommonModule } from '@angular/common';
 import {
   ChangeDetectorRef,
   Component,
@@ -11,13 +18,28 @@ import {
   OnInit,
   ViewChild
 } from '@angular/core';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
-import { MatTableDataSource } from '@angular/material/table';
+import { MatButtonModule } from '@angular/material/button';
+import { MatMenuModule } from '@angular/material/menu';
+import {
+  MatPaginator,
+  MatPaginatorModule,
+  PageEvent
+} from '@angular/material/paginator';
+import { MatTableDataSource, MatTableModule } from '@angular/material/table';
+import { IonIcon } from '@ionic/angular/standalone';
 import {
   differenceInSeconds,
   formatDistanceToNowStrict,
   parseISO
 } from 'date-fns';
+import { addIcons } from 'ionicons';
+import {
+  contractOutline,
+  ellipsisHorizontal,
+  keyOutline,
+  trashOutline
+} from 'ionicons/icons';
+import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
@@ -29,12 +51,22 @@ import { ImpersonationStorageService } from '../../services/impersonation-storag
 import { UserService } from '../../services/user/user.service';
 
 @Component({
+  imports: [
+    CommonModule,
+    GfPremiumIndicatorComponent,
+    GfValueComponent,
+    IonIcon,
+    MatButtonModule,
+    MatMenuModule,
+    MatPaginatorModule,
+    MatTableModule,
+    NgxSkeletonLoaderModule
+  ],
   selector: 'gf-admin-users',
-  standalone: false,
   styleUrls: ['./admin-users.scss'],
   templateUrl: './admin-users.html'
 })
-export class AdminUsersComponent implements OnDestroy, OnInit {
+export class GfAdminUsersComponent implements OnDestroy, OnInit {
   @ViewChild(MatPaginator) paginator: MatPaginator;
 
   public dataSource = new MatTableDataSource<AdminUsers['users'][0]>();
@@ -69,7 +101,6 @@ export class AdminUsersComponent implements OnDestroy, OnInit {
 
     if (this.hasPermissionForSubscription) {
       this.displayedColumns = [
-        'index',
         'user',
         'country',
         'registration',
@@ -82,7 +113,6 @@ export class AdminUsersComponent implements OnDestroy, OnInit {
       ];
     } else {
       this.displayedColumns = [
-        'index',
         'user',
         'registration',
         'accounts',
@@ -107,6 +137,8 @@ export class AdminUsersComponent implements OnDestroy, OnInit {
           );
         }
       });
+
+    addIcons({ contractOutline, ellipsisHorizontal, keyOutline, trashOutline });
   }
 
   public ngOnInit() {
@@ -116,7 +148,8 @@ export class AdminUsersComponent implements OnDestroy, OnInit {
   public formatDistanceToNow(aDateString: string) {
     if (aDateString) {
       const distanceString = formatDistanceToNowStrict(parseISO(aDateString), {
-        addSuffix: true
+        addSuffix: true,
+        locale: getDateFnsLocale(this.user?.settings?.language)
       });
 
       return Math.abs(differenceInSeconds(parseISO(aDateString), new Date())) <
@@ -147,7 +180,7 @@ export class AdminUsersComponent implements OnDestroy, OnInit {
     this.notificationService.confirm({
       confirmFn: () => {
         this.dataService
-          .generateAccessToken(aUserId)
+          .updateUserAccessToken(aUserId)
           .pipe(takeUntil(this.unsubscribeSubject))
           .subscribe(({ accessToken }) => {
             this.notificationService.alert({

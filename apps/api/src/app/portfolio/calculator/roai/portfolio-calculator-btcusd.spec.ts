@@ -18,6 +18,7 @@ import { PortfolioSnapshotServiceMock } from '@ghostfolio/api/services/queues/po
 import { parseDate } from '@ghostfolio/common/helper';
 import { PerformanceCalculationType } from '@ghostfolio/common/types/performance-calculation-type.type';
 
+import { Tag } from '@prisma/client';
 import { Big } from 'big.js';
 import { join } from 'path';
 
@@ -63,7 +64,7 @@ describe('PortfolioCalculator', () => {
 
   beforeAll(() => {
     activityDtos = loadActivityExportFile(
-      join(__dirname, '../../../../../../../test/import/ok-btcusd.json')
+      join(__dirname, '../../../../../../../test/import/ok/btcusd.json')
     );
   });
 
@@ -108,6 +109,9 @@ describe('PortfolioCalculator', () => {
           name: 'Bitcoin',
           symbol: activity.symbol
         },
+        tags: activity.tags?.map((id) => {
+          return { id } as Tag;
+        }),
         unitPriceInAssetProfileCurrency: 44558.42
       }));
 
@@ -224,8 +228,7 @@ describe('PortfolioCalculator', () => {
         totalInterestWithCurrencyEffect: new Big('0'),
         totalInvestment: new Big('44558.42'),
         totalInvestmentWithCurrencyEffect: new Big('44558.42'),
-        totalLiabilitiesWithCurrencyEffect: new Big('0'),
-        totalValuablesWithCurrencyEffect: new Big('0')
+        totalLiabilitiesWithCurrencyEffect: new Big('0')
       });
 
       expect(investments).toEqual([

@@ -12,7 +12,8 @@ import {
   AccountBalance,
   Order,
   Platform,
-  Prisma
+  Prisma,
+  SymbolProfile
 } from '@prisma/client';
 import { Big } from 'big.js';
 import { format } from 'date-fns';
@@ -62,9 +63,9 @@ export class AccountService {
     orderBy?: Prisma.AccountOrderByWithRelationInput;
   }): Promise<
     (Account & {
-      activities?: Order[];
+      activities?: (Order & { SymbolProfile?: SymbolProfile })[];
       balances?: AccountBalance[];
-      Platform?: Platform;
+      platform?: Platform;
     })[]
   > {
     const { include = {}, skip, take, cursor, where, orderBy } = params;
@@ -140,7 +141,10 @@ export class AccountService {
 
   public async getAccounts(aUserId: string): Promise<Account[]> {
     const accounts = await this.accounts({
-      include: { activities: true, Platform: true },
+      include: {
+        activities: true,
+        platform: true
+      },
       orderBy: { name: 'asc' },
       where: { userId: aUserId }
     });

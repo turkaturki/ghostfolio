@@ -18,6 +18,7 @@ import { PortfolioSnapshotServiceMock } from '@ghostfolio/api/services/queues/po
 import { parseDate } from '@ghostfolio/common/helper';
 import { PerformanceCalculationType } from '@ghostfolio/common/types/performance-calculation-type.type';
 
+import { Tag } from '@prisma/client';
 import { Big } from 'big.js';
 import { join } from 'path';
 
@@ -65,7 +66,7 @@ describe('PortfolioCalculator', () => {
     activityDtos = loadActivityExportFile(
       join(
         __dirname,
-        '../../../../../../../test/import/ok-novn-buy-and-sell.json'
+        '../../../../../../../test/import/ok/novn-buy-and-sell.json'
       )
     );
   });
@@ -111,6 +112,9 @@ describe('PortfolioCalculator', () => {
           name: 'Novartis AG',
           symbol: activity.symbol
         },
+        tags: activity.tags?.map((id) => {
+          return { id } as Tag;
+        }),
         unitPriceInAssetProfileCurrency: activity.unitPrice
       }));
 
@@ -228,8 +232,7 @@ describe('PortfolioCalculator', () => {
         totalInterestWithCurrencyEffect: new Big('0'),
         totalInvestment: new Big('0'),
         totalInvestmentWithCurrencyEffect: new Big('0'),
-        totalLiabilitiesWithCurrencyEffect: new Big('0'),
-        totalValuablesWithCurrencyEffect: new Big('0')
+        totalLiabilitiesWithCurrencyEffect: new Big('0')
       });
 
       expect(portfolioSnapshot.historicalData.at(-1)).toMatchObject(
